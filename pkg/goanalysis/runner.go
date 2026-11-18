@@ -33,7 +33,6 @@ var (
 
 	factsDebugf        = logutils.Debug(logutils.DebugKeyGoAnalysisFacts)
 	factsCacheDebugf   = logutils.Debug(logutils.DebugKeyGoAnalysisFactsCache)
-	factsInheritDebugf = logutils.Debug(logutils.DebugKeyGoAnalysisFactsInherit)
 	factsExportDebugf  = logutils.Debug(logutils.DebugKeyGoAnalysisFacts)
 	isFactsExportDebug = logutils.HaveDebugTag(logutils.DebugKeyGoAnalysisFactsExport)
 )
@@ -55,6 +54,7 @@ type runner struct {
 	passToPkg      map[*analysis.Pass]*packages.Package
 	passToPkgGuard sync.Mutex
 	sw             *timeutils.Stopwatch
+	factProducers  factProducers // see runner_facts.go
 }
 
 func newRunner(prefix string, logger logutils.Log, pkgCache *cache.Cache, loadGuard *load.Guard,
@@ -249,6 +249,8 @@ func (r *runner) analyze(pkgs []*packages.Package, analyzers []*analysis.Analyze
 			actions:    actionPerPkg[pkg],
 			loadGuard:  r.loadGuard,
 			dependents: 1, // self dependent
+
+			factProducers: &r.factProducers,
 		}
 	}
 	for _, act := range actions {

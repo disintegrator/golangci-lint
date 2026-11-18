@@ -45,33 +45,9 @@ func (act *action) loadCacheFacts(reset bool) bool {
 		act.packageFacts = make(map[packageFactKey]analysis.Fact)
 	}
 
-	if !act.loadPersistedFacts() {
-		return false
-	}
-
 	// The cache only stores the facts a package produces about its own objects.
-	// The facts a package re-exports from its dependencies (see exportedFrom) are not persisted,
-	// to avoid duplicating them in every cache entry (which grows quadratically with the import graph).
-	// Instead, we rebuild them in memory here by inheriting from the dependencies,
-	// exactly like analyze() does for packages analyzed from source.
-	// This is safe because every dependency is fully analyzed (from cache or source) before this package is loaded,
-	// so their facts are already available.
-	act.inheritFactsFromDeps()
-
-	return true
-}
-
-// inheritFactsFromDeps rebuilds, in memory,
-// the facts re-exported from this action's dependencies (vertical edges: same analyzer, different package),
-// mirroring the inheritance performed by analyze() for packages analyzed from source.
-func (act *action) inheritFactsFromDeps() {
-	for _, dep := range act.Deps {
-		if dep.Package == act.Package || dep.Analyzer != act.Analyzer {
-			continue
-		}
-
-		inheritFacts(act, dep)
-	}
+	// The facts about the dependencies are read from the actions of the dependencies (see runner_facts.go).
+	return act.loadPersistedFacts()
 }
 
 func (act *action) persistFactsToCache() error {
@@ -82,11 +58,9 @@ func (act *action) persistFactsToCache() error {
 	}
 
 	// Persist only the facts this package produces about its own objects.
-	//
-	// Facts about objects from other packages (inherited through this package's export data) are intentionally NOT persisted:
+	// An action only holds facts about its own package (see runner_facts.go),
+	// the checks below are a safeguard: the facts about other packages must not be persisted,
 	// doing so duplicates them in every cache entry along the import graph and makes the cache grow quadratically.
-	// When a package is restored from the cache,
-	// those re-exported facts are rebuilt in memory by inheriting from its dependencies (see inheritFactsFromDeps).
 
 	var facts []Fact
 

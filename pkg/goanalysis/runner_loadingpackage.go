@@ -39,6 +39,8 @@ type loadingPackage struct {
 	dependents  int32 // number of depending on it packages
 	analyzeOnce sync.Once
 	decUseMutex sync.Mutex
+
+	factProducers *factProducers // index of the runner (see runner_facts.go)
 }
 
 func (lp *loadingPackage) analyzeRecursive(ctx context.Context, cancel context.CancelFunc, loadMode LoadMode, loadSem chan struct{}) {
@@ -91,6 +93,9 @@ func (lp *loadingPackage) analyze(ctx context.Context, cancel context.CancelFunc
 
 		return
 	}
+
+	// The dependents read the facts of this package after the end of its analysis (see runner_facts.go).
+	lp.factProducers.register(lp.pkg, lp.actions)
 
 	actsWg, ctxGroup := errgroup.WithContext(ctx)
 
@@ -426,6 +431,7 @@ func (lp *loadingPackage) decUse(canClearTypes bool) {
 		pass.ExportPackageFact = nil
 		act.pass = nil
 		act.Deps = nil
+		act.factDeps = nil
 		if act.Result != nil {
 			if isMemoryDebug {
 				debugf("%s: decUse: nilling act result of size %d bytes", act, sizeOfValueTreeBytes(act.Result))
@@ -444,6 +450,9 @@ func (lp *loadingPackage) decUse(canClearTypes bool) {
 	if dependents != 0 {
 		return
 	}
+
+	// The package and all its dependents are done: no action can read the facts of this package anymore.
+	lp.factProducers.unregister(lp.pkg)
 
 	if canClearTypes {
 		// canClearTypes is set to true if we can discard type
