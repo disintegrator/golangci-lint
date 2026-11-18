@@ -31,11 +31,17 @@ var (
 	isMemoryDebug     = logutils.HaveDebugTag(logutils.DebugKeyGoAnalysisMemory)
 	issuesCacheDebugf = logutils.Debug(logutils.DebugKeyGoAnalysisIssuesCache)
 
-	factsDebugf        = logutils.Debug(logutils.DebugKeyGoAnalysisFacts)
-	factsCacheDebugf   = logutils.Debug(logutils.DebugKeyGoAnalysisFactsCache)
-	factsInheritDebugf = logutils.Debug(logutils.DebugKeyGoAnalysisFactsInherit)
-	factsExportDebugf  = logutils.Debug(logutils.DebugKeyGoAnalysisFacts)
-	isFactsExportDebug = logutils.HaveDebugTag(logutils.DebugKeyGoAnalysisFactsExport)
+	// The calls to the facts debug functions are guarded by the is*Debug variables:
+	// even when debugging is disabled, the variadic arguments of a call are heap-allocated,
+	// and some of these calls happen once per inherited fact.
+	factsDebugf         = logutils.Debug(logutils.DebugKeyGoAnalysisFacts)
+	isFactsDebug        = logutils.HaveDebugTag(logutils.DebugKeyGoAnalysisFacts)
+	factsCacheDebugf    = logutils.Debug(logutils.DebugKeyGoAnalysisFactsCache)
+	isFactsCacheDebug   = logutils.HaveDebugTag(logutils.DebugKeyGoAnalysisFactsCache)
+	factsInheritDebugf  = logutils.Debug(logutils.DebugKeyGoAnalysisFactsInherit)
+	isFactsInheritDebug = logutils.HaveDebugTag(logutils.DebugKeyGoAnalysisFactsInherit)
+	factsExportDebugf   = logutils.Debug(logutils.DebugKeyGoAnalysisFacts)
+	isFactsExportDebug  = logutils.HaveDebugTag(logutils.DebugKeyGoAnalysisFactsExport)
 )
 
 type Diagnostic struct {
